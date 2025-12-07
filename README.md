@@ -34,7 +34,6 @@ You need a **Google Cloud Project** with the **Gmail API** enabled.
 ### 2. Run Locally
 1. Install dependencies:
    ```bash
-   cd "Job Search Scripts/Mass Emailer/mass-emailer"
    npm install
    ```
 2. Start the server:
