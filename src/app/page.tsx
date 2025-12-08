@@ -90,6 +90,25 @@ export default function Home() {
     }
   }, [user, columns, data, subject, body, isRestored]);
 
+  /* Exit Confirmation (Prevent accidental tab close) */
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        // Condition: Only warn if we are in the Review step (Active Step 2) 
+        // OR if emails are currently being sent.
+        // We trust auto-save for Step 1 (Compose).
+        const shouldWarn = activeStep === 2 || sending;
+        
+        if (shouldWarn) {
+            e.preventDefault();
+            e.returnValue = ''; 
+            return '';
+        }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [activeStep, sending]);
+
   const logsSectionRef = React.useRef<HTMLDivElement>(null);
 
   const handleSend = async () => {
@@ -152,6 +171,9 @@ export default function Home() {
         localStorage.removeItem(`draft_subject_${user.email}`);
         localStorage.removeItem(`draft_body_${user.email}`);
     }
+
+    // Always return to compose mode so we don't get stuck on an empty review page
+    setActiveStep(1);
     
     toast.success("All data cleared successfully");
   };
@@ -233,8 +255,12 @@ export default function Home() {
              
              <button
                 onClick={handleGlobalReset}
-                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                title="Clear All Data"
+                disabled={sending}
+                className={cn(
+                    "p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors",
+                    sending && "opacity-50 cursor-not-allowed pointer-events-none"
+                )}
+                title={sending ? "Cannot clear data while sending" : "Clear All Data"}
              >
                  <Trash2 size={18} />
              </button>

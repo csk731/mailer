@@ -351,7 +351,7 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
                  </div>
              ) : (
                  <Spreadsheet 
-                    key={columns.join(',')} 
+                    key={`${columns.join(',')}-${data.length}`} 
                     data={spreadsheetData} 
                     onChange={handleDataChange}
                     columnLabels={columnLabels as any} 
