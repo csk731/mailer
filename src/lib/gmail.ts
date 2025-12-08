@@ -16,13 +16,14 @@ export const REQUIRED_SCOPE = "https://www.googleapis.com/auth/gmail.send https:
 
 export function replacePlaceholders(template: string, data: Recipient): string {
   let result = template;
-  // Match {{Key}} patterns
-  const regex = /\{\{([^}]+)\}\}/g;
+  // Match {{ Key }} patterns with generous whitespace allowance
+  const regex = /\{\{\s*([^}]+)\s*\}\}/g;
   
   result = result.replace(regex, (match, key) => {
     const trimmedKey = key.trim();
     const upperKey = trimmedKey.toUpperCase(); // Convert to uppercase for matching
-    return data[upperKey] || match; // Look up using uppercase key
+    // Use the value if found, otherwise keep the match (so user sees the broken tag)
+    return data[upperKey] !== undefined ? data[upperKey] : match; 
   });
   
   return result;

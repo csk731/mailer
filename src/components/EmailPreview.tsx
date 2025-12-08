@@ -74,19 +74,21 @@ export function EmailPreview({
                <button 
                   onClick={handlePrev} 
                   disabled={currentIndex === 0}
-                  className="p-2 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Previous Recipient"
+                   className="p-2 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                   title="Previous Recipient"
+                   aria-label="Previous recipient"
                >
                    <ChevronLeft size={20} />
                </button>
-               <span className="text-sm font-mono text-muted-foreground w-12 text-center">
-                   {currentIndex + 1} / {data.length}
-               </span>
+                <span className="text-sm font-mono text-muted-foreground min-w-[3rem] px-2 text-center whitespace-nowrap">
+                    {currentIndex + 1} / {data.length}
+                </span>
                <button 
                   onClick={handleNext} 
                   disabled={currentIndex === data.length - 1}
-                  className="p-2 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Next Recipient"
+                   className="p-2 rounded-lg hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                   title="Next Recipient"
+                   aria-label="Next recipient"
                >
                    <ChevronRight size={20} />
                </button>
@@ -94,13 +96,13 @@ export function EmailPreview({
        </div>
 
        {/* Email Preview Card */}
-       <div className="bg-white dark:bg-[#0c0c0e] border border-border rounded-xl shadow-lg ring-1 ring-black/5 overflow-hidden">
+       <div className="bg-card border border-border rounded-xl shadow-lg ring-1 ring-black/5 overflow-hidden">
            {/* Fake Window Controls */}
-           <div className="bg-muted/30 border-b border-border p-3 flex gap-2">
-               <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
-               <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-               <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
-           </div>
+            <div className="bg-muted/30 border-b border-border p-3 flex gap-2">
+                <div className="w-3 h-3 rounded-full bg-rose-500/20 border border-rose-500/30" />
+                <div className="w-3 h-3 rounded-full bg-amber-500/20 border border-amber-500/30" />
+                <div className="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500/30" />
+            </div>
            
            <div className="p-8 space-y-6">
                 <div className="space-y-1 pb-4 border-b border-border/50">
@@ -112,15 +114,15 @@ export function EmailPreview({
                     </div>
                     <div className="flex gap-4 items-baseline">
                         <span className="text-muted-foreground w-16 text-sm shrink-0 font-medium">To:</span>
-                        <span className="text-sm text-foreground bg-muted/50 px-2 py-0.5 rounded break-all">{currentRecipient.EMAIL}</span>
+                        <span className="text-sm text-foreground bg-indigo-500/10 text-indigo-100 border border-indigo-500/20 px-2 py-0.5 rounded break-all shadow-sm">{currentRecipient.EMAIL}</span>
                     </div>
                      <div className="flex gap-4 items-baseline">
                         <span className="text-muted-foreground w-16 text-sm shrink-0 font-medium">Subject:</span>
-                        <span className="text-sm font-semibold text-foreground break-words">{subject}</span>
+                        <span className="text-sm font-semibold text-foreground break-words break-all min-w-0 flex-1">{subject}</span>
                     </div>
                 </div>
                 
-                <div className="prose prose-sm dark:prose-invert max-w-none min-h-[100px] whitespace-pre-wrap font-sans text-slate-300 leading-relaxed">
+                <div className="prose prose-sm dark:prose-invert max-w-none min-h-[100px] whitespace-pre-wrap font-sans text-foreground leading-relaxed break-words break-all">
                     {body}
                 </div>
 
@@ -132,7 +134,7 @@ export function EmailPreview({
                          <div className="flex flex-wrap gap-2">
                              {attachments.map((file, i) => (
                                  <div key={file.name + i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/50 group select-none">
-                                     <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary">
+                                     <div className="w-8 h-8 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                                          <Mail size={16} /> {/* Generic file icon fallback */}
                                      </div>
                                      <div className="flex flex-col">
@@ -154,7 +156,7 @@ export function EmailPreview({
                 <button
                     onClick={onSend}
                     disabled={sending}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-3 rounded-lg font-medium hover:opacity-90 transition-all shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                     {sending ? (
                         <>
@@ -163,12 +165,12 @@ export function EmailPreview({
                         </>
                     ) : (
                         <>
-                            Launch Campaign <Send size={18} />
+                            Send <Send size={18} />
                         </>
                     )}
                 </button>
                 <span className="text-[10px] text-muted-foreground">
-                    You are mostly ready. Click launch to start sending.
+                    You are almost ready. Click to send.
                 </span>
            </div>
        </div>

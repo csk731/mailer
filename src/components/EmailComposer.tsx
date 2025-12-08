@@ -86,17 +86,18 @@ export function EmailComposer({
     <div className="w-full space-y-4">
       {/* Variable Chips Toolbar */}
       <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
-        <div className="flex items-center gap-2 text-xs font-medium text-slate-500 uppercase tracking-widest pl-1">
-             <Sparkles size={10} className="text-blue-400" /> 
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">
+             <Sparkles size={10} className="text-indigo-400" /> 
              <span>Data Variables</span>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex justify-between items-start gap-4">
+             <div className="flex flex-wrap gap-2">
             {columns.map((col) => (
             <button
                 key={col}
                 onMouseDown={(e) => e.preventDefault()} // Prevent losing focus from input/textarea
                 onClick={() => insertVariable(col)}
-                className="group relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/40 border border-slate-800 text-xs font-medium text-slate-400 hover:text-blue-300 hover:border-blue-500/30 hover:bg-blue-500/10 transition-all select-none focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                className="group relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-medium text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/20 transition-all select-none focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
                 title={`Insert {{${col}}} into message`}
             >
                 <span className="opacity-50 text-[10px] group-hover:opacity-100 transition-opacity">{`{{`}</span>
@@ -104,14 +105,15 @@ export function EmailComposer({
                 <span className="opacity-50 text-[10px] group-hover:opacity-100 transition-opacity">{`}}`}</span>
             </button>
             ))}
+            </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-0 bg-[#09090b] rounded-lg border border-slate-800 shadow-sm overflow-hidden focus-within:ring-1 focus-within:ring-slate-700 transition-all">
+      <div className="flex flex-col gap-0 bg-background rounded-lg border border-border shadow-sm overflow-hidden focus-within:ring-1 focus-within:ring-ring transition-all">
          
          {/* Subject Line */}
-         <div className="relative border-b border-slate-800/50">
-           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+         <div className="relative border-b border-border/50">
+           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
                 <Type size={14} />
            </div>
            <input
@@ -121,27 +123,27 @@ export function EmailComposer({
              onChange={(e) => setSubject(e.target.value)}
              onFocus={() => setLastFocused('subject')}
              placeholder="Subject Line"
-             className="w-full bg-transparent border-none text-sm text-slate-200 placeholder:text-slate-600 px-4 py-3 pl-10 focus:outline-none focus:bg-slate-900/30 transition-colors font-medium"
+             className="w-full bg-transparent border-none text-sm text-foreground placeholder:text-muted-foreground px-4 py-3 pl-10 focus:outline-none focus:bg-muted/30 transition-colors font-medium"
            />
          </div>
 
          {/* Body Textarea */}
-         <div className="relative flex-1 min-h-[350px] bg-[#09090b]">
+         <div className="relative flex-1 min-h-[350px] bg-background">
             <textarea
                 ref={bodyTextareaRef}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 onFocus={() => setLastFocused('body')}
                 placeholder="Write your message here..."
-                className="w-full h-full min-h-[350px] bg-transparent text-slate-300 px-4 py-4 focus:outline-none resize-y font-sans text-[14px] leading-relaxed placeholder:text-slate-700"
+                className="w-full h-full min-h-[350px] bg-transparent text-foreground px-4 py-4 focus:outline-none resize-y font-sans text-[14px] leading-relaxed placeholder:text-muted-foreground"
                 style={{ lineHeight: '1.6' }}
             />
          </div>
 
           {/* Attachments Footer */}
-          <div className="px-4 py-3 border-t border-slate-800 bg-slate-900/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+          <div className="px-4 py-3 border-t border-border bg-muted/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 flex-1 w-full sm:w-auto overflow-hidden">
-                  <label className="flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-blue-400 cursor-pointer transition-colors px-2 py-1.5 rounded hover:bg-white/5 active:scale-95 transition-transform select-none shrink-0">
+                  <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-indigo-400 cursor-pointer transition-colors px-2 py-1.5 rounded hover:bg-background active:scale-95 transition-transform select-none shrink-0">
                       <Paperclip size={14} />
                       <span>Attach Files</span>
                       <input 
@@ -170,13 +172,13 @@ export function EmailComposer({
                   {/* File List */}
                   <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-fade-right">
                       {attachments.map((file, i) => (
-                          <div key={file.name + i} className="flex items-center gap-2 pl-2 pr-1 py-1 rounded bg-slate-800 border border-slate-700 text-[11px] text-slate-300 animate-in fade-in zoom-in duration-200 shrink-0 group select-none">
-                              <FileIcon size={10} className="text-slate-500" />
+                          <div key={file.name + i} className="flex items-center gap-2 pl-2 pr-1 py-1 rounded bg-background border border-border text-[11px] text-foreground animate-in fade-in zoom-in duration-200 shrink-0 group select-none">
+                              <FileIcon size={10} className="text-muted-foreground" />
                               <span className="truncate max-w-[120px]">{file.name}</span>
-                              <span className="text-slate-600 text-[9px] px-1">{(file.size / 1024).toFixed(0)}KB</span>
+                              <span className="text-muted-foreground text-[9px] px-1">{(file.size / 1024).toFixed(0)}KB</span>
                               <button 
                                 onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} 
-                                className="ml-1 p-0.5 hover:bg-slate-700 rounded text-slate-500 hover:text-red-400 transition-colors"
+                                className="ml-1 p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-destructive transition-colors"
                               >
                                   <X size={10} />
                               </button>
@@ -185,7 +187,7 @@ export function EmailComposer({
                   </div>
               </div>
               
-              <div className="text-[10px] text-slate-600 font-mono pl-4 shrink-0">
+              <div className="text-[10px] text-muted-foreground font-mono pl-4 shrink-0">
                   {attachments.length > 0 ? `${attachments.length} files` : 'Plain text'}
               </div>
           </div>

@@ -55,13 +55,22 @@ export function useEmailCampaign() {
             setLogs(prev => [...prev, { status: 'success', msg: `Sent to ${recipientEmail}`, timestamp: new Date() }]);
             consecutiveErrors = 0; // Reset error counter on success
             
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
             consecutiveErrors++;
             setProgress(prev => ({ ...prev, failed: prev.failed + 1 }));
             
-            // Parse error message
-            const errorMsg = error.message || "Unknown error";
+            // Parse error message safely
+            let errorMsg = "Unknown error";
+            if (error instanceof Error) {
+                errorMsg = error.message;
+            } else if (typeof error === 'string') {
+                errorMsg = error;
+            } else if (typeof error === 'object' && error !== null && 'message' in error) {
+                 errorMsg = String((error as any).message);
+            } else {
+                 errorMsg = String(error);
+            }
             const isRateLimit = errorMsg.toLowerCase().includes('rate') || 
                                errorMsg.toLowerCase().includes('quota') ||
                                errorMsg.toLowerCase().includes('429');

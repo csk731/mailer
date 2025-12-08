@@ -10,7 +10,7 @@ export function LoginScreen({ onLogin, loggingIn }: LoginScreenProps) {
     const [clientId, setClientId] = useState("");
 
     return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen flex flex-col items-center justify-center p-4">
             <div className="text-center space-y-6 max-w-md">
                 <div className="space-y-2">
                      <div className="mb-4"></div>
@@ -51,7 +51,7 @@ export function LoginScreen({ onLogin, loggingIn }: LoginScreenProps) {
                     
                      {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
                          <p className="text-xs text-muted-foreground/50">
-                             Add NEXT_PUBLIC_GOOGLE_CLIENT_ID to .env.local to skip manual entry
+                             Add NEXT_PUBLIC_GOOGLE_CLIENT_ID to .env to skip manual entry
                          </p>
                      )}
                 </div>

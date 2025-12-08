@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 
 import { AuthProvider } from "@/context/AuthContext";
 import { GlobalErrorHandler } from "@/components/GlobalErrorHandler";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: "Mailer",
@@ -34,7 +35,14 @@ export default function RootLayout({
         <script src="https://accounts.google.com/gsi/client" async defer></script>
         <GlobalErrorHandler />
         <AuthProvider>
-            {children}
+            <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+            >
+                {children}
+            </ThemeProvider>
         </AuthProvider>
         <Toaster position="top-right" richColors closeButton />
       </body>
