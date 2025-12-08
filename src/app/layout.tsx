@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Bitcount_Prop_Double_Ink, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 
@@ -10,6 +10,17 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const bitcount = Bitcount_Prop_Double_Ink({
+  variable: "--font-bitcount",
+  subsets: ["latin"],
+  weight: "400", // Required for some fonts
+});
+
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
   subsets: ["latin"],
 });
 
@@ -30,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${bitcount.variable} ${playfair.variable} antialiased`}
       >
         <script src="https://accounts.google.com/gsi/client" async defer></script>
         <GlobalErrorHandler />

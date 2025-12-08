@@ -123,7 +123,7 @@ export function EmailComposer({
              onChange={(e) => setSubject(e.target.value)}
              onFocus={() => setLastFocused('subject')}
              placeholder="Subject Line"
-             className="w-full bg-transparent border-none text-sm text-foreground placeholder:text-muted-foreground px-4 py-3 pl-10 focus:outline-none focus:bg-muted/30 transition-colors font-medium"
+             className="w-full bg-transparent border-none text-sm text-foreground placeholder:text-muted-foreground px-4 py-3 pl-10 focus:outline-none focus:bg-muted/30 transition-colors font-sans font-medium"
            />
          </div>
 
@@ -172,12 +172,20 @@ export function EmailComposer({
                   {/* File List */}
                   <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-fade-right">
                       {attachments.map((file, i) => (
-                          <div key={file.name + i} className="flex items-center gap-2 pl-2 pr-1 py-1 rounded bg-background border border-border text-[11px] text-foreground animate-in fade-in zoom-in duration-200 shrink-0 group select-none">
-                              <FileIcon size={10} className="text-muted-foreground" />
+                          <div 
+                            key={file.name + i} 
+                            onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                            className="flex items-center gap-2 pl-2 pr-1 py-1 rounded bg-background border border-border text-[11px] text-foreground animate-in fade-in zoom-in duration-200 shrink-0 group select-none cursor-pointer hover:border-indigo-500/50 hover:bg-muted/50 transition-colors"
+                            title="Click to preview"
+                          >
+                              <FileIcon size={10} className="text-muted-foreground group-hover:text-indigo-400 transition-colors" />
                               <span className="truncate max-w-[120px]">{file.name}</span>
                               <span className="text-muted-foreground text-[9px] px-1">{(file.size / 1024).toFixed(0)}KB</span>
                               <button 
-                                onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} 
+                                onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    setAttachments(attachments.filter((_, idx) => idx !== i)); 
+                                }} 
                                 className="ml-1 p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-destructive transition-colors"
                               >
                                   <X size={10} />

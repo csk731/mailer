@@ -30,7 +30,7 @@ const DataViewer = ({ cell }: { cell?: { value: string; error?: string | null; w
              {cell.error && (
                  <div className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 opacity-80 hover:opacity-100 transition-all z-10 cursor-help group/error">
                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse" />
-                     <div className="absolute right-0 top-full mt-2 hidden group-hover/error:block bg-red-950/90 border border-red-500/20 text-red-200 text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap backdrop-blur-sm z-50">
+                     <div className="absolute right-0 top-full mt-2 hidden group-hover/error:block bg-red-950/90 border border-red-500/20 text-red-200 text-xs px-2 py-1 rounded shadow-xl whitespace-nowrap backdrop-blur-sm z-50">
                         {cell.error}
                      </div>
                  </div>
@@ -48,6 +48,9 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
 
   /* Refs */
   const modalInputRef = useRef<HTMLInputElement>(null);
+
+  /* Safe Remount State */
+  const [resetting, setResetting] = useState(false);
 
   /* Effects */
   useEffect(() => {
@@ -113,6 +116,9 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
     while(columns.some(c => c.toUpperCase() === name)) {
         name = `${baseName} ${counter++}`;
     }
+    
+    // Smooth add doesn't need hard reset usually, but let's be safe if it causes issues. 
+    // Usually adding is fine. Deleting/Renaming (changing keys) is risky.
     setColumns([...columns, name]);
     setData(data.map((r) => ({ ...r, [name]: "" })));
     toast.success("Column added");
@@ -120,12 +126,19 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
 
   const confirmDeleteColumn = () => {
       if (!deleteConfirm) return;
-      const col = deleteConfirm.column;
-      setColumns(columns.filter((c) => c !== col));
-      const newData = data.map((r) => { const {[col]: _, ...rest} = r; return rest; });
-      setData(newData);
-      setDeleteConfirm(null);
-      toast.success(`Column "${col}" deleted`);
+      
+      // Hard Reset: Unmount table -> Update Data -> Remount
+      setResetting(true);
+      
+      setTimeout(() => {
+          const col = deleteConfirm.column;
+          setColumns(columns.filter((c) => c !== col));
+          const newData = data.map((r) => { const {[col]: _, ...rest} = r; return rest; });
+          setData(newData);
+          setDeleteConfirm(null);
+          setResetting(false);
+          toast.success(`Column "${col}" deleted`);
+      }, 10);
   };
 
   const removeColumn = (col: string) => {
@@ -144,8 +157,7 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
           setRenameModal(prev => prev ? { ...prev, error: "Name cannot be empty" } : null);
           return;
       }
-
-      // Check duplication case-insensitively, excluding the current column
+      
       if (trimmed !== oldName.toUpperCase() && columns.some(c => c.toUpperCase() === trimmed)) {
           setRenameModal(prev => prev ? { ...prev, error: "Column name already exists" } : null);
           return;
@@ -156,16 +168,20 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
            return;
       }
       
-      const newCols = columns.map(c => c === oldName ? trimmed : c);
-      const newData = data.map(r => {
-           const val = r[oldName];
-           const {[oldName]: _, ...rest} = r;
-           return { ...rest, [trimmed]: val };
-       });
-       setColumns(newCols);
-       setData(newData);
-       setRenameModal(null);
-       toast.success("Column renamed");
+      setResetting(true);
+      setTimeout(() => {
+          const newCols = columns.map(c => c === oldName ? trimmed : c);
+          const newData = data.map(r => {
+               const val = r[oldName];
+               const {[oldName]: _, ...rest} = r;
+               return { ...rest, [trimmed]: val };
+           });
+           setColumns(newCols);
+           setData(newData);
+           setRenameModal(null);
+           setResetting(false);
+           toast.success("Column renamed");
+      }, 10);
   };
 
   const addRow = () => {
@@ -188,7 +204,7 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
             className="flex items-center justify-between px-3 h-full w-full group select-none hover:bg-slate-800/50 transition-colors"
         >
             <span className={cn(
-                "font-medium text-[10px] uppercase tracking-wider truncate cursor-default text-muted-foreground group-hover:text-foreground transition-colors",
+                "font-medium text-xs uppercase tracking-wider truncate cursor-default text-muted-foreground group-hover:text-foreground transition-colors",
                 isProtected && "text-indigo-400 font-semibold group-hover:text-indigo-300"
             )}>{label}</span>
             {!isProtected && (
@@ -219,7 +235,7 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
   };
 
   const RowLabel = ({ index }: { index: number }) => (
-      <div className="w-full h-full flex items-center justify-center text-[10px] font-mono text-muted-foreground group relative cursor-pointer hover:bg-destructive/10 transition-colors">
+      <div className="w-full h-full flex items-center justify-center text-xs font-mono text-muted-foreground group relative cursor-pointer hover:bg-destructive/10 transition-colors">
           <span className="group-hover:opacity-0 transition-opacity duration-150">{index + 1}</span>
           <button 
                 onClick={(e) => {
@@ -257,19 +273,19 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
                                 )}
                                 placeholder="COLUMN NAME"
                            />
-                           {renameModal.error && <p className="text-[10px] text-red-400 mt-1.5 flex items-center gap-1"><AlertCircle size={10} /> {renameModal.error}</p>}
+                           {renameModal.error && <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1"><AlertCircle size={10} /> {renameModal.error}</p>}
                        </div>
                        <div className="flex justify-end gap-2">
                            <button 
                                 type="button"
                                 onClick={() => setRenameModal(null)}
-                                className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                                className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                            >
                                CANCEL
                            </button>
                            <button 
                                 type="submit"
-                                className="px-3 py-1.5 text-[10px] font-semibold bg-indigo-600 text-white rounded hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-900/20"
+                                className="px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-900/20"
                            >
                                SAVE CHANGE
                            </button>
@@ -290,13 +306,13 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
                    <div className="flex justify-end gap-2">
                        <button 
                             onClick={() => setDeleteConfirm(null)}
-                            className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                            className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                        >
                            CANCEL
                        </button>
                        <button 
                             onClick={confirmDeleteColumn}
-                            className="px-3 py-1.5 text-[10px] font-semibold bg-red-950/30 text-red-400 border border-red-500/20 rounded hover:bg-red-950/50 hover:border-red-500/30 transition-all shadow-lg shadow-red-900/10"
+                            className="px-3 py-1.5 text-xs font-semibold bg-red-950/30 text-red-400 border border-red-500/20 rounded hover:bg-red-950/50 hover:border-red-500/30 transition-all shadow-lg shadow-red-900/10"
                        >
                            DELETE
                        </button>
@@ -313,13 +329,13 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
             <div className="flex items-center gap-2 w-full sm:w-auto">
                  <button 
                     onClick={addColumn}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-medium text-muted-foreground hover:text-indigo-400 hover:bg-indigo-500/10 transition-all border border-transparent hover:border-indigo-500/20 w-full sm:w-auto justify-center sm:justify-start"
+                    className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium text-muted-foreground hover:text-indigo-400 hover:bg-indigo-500/10 transition-all border border-transparent hover:border-indigo-500/20 w-full sm:w-auto justify-center sm:justify-start"
                  >
                     <Plus size={12} />
                     ADD COLUMN
                  </button>
             </div>
-             <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground w-full sm:w-auto justify-between sm:justify-end">
+             <div className="flex items-center gap-3 text-xs font-mono text-muted-foreground w-full sm:w-auto justify-between sm:justify-end">
                 <span>{data.length} ROWS</span>
                 <span className="w-px h-3 bg-border hidden sm:block" />
                 <span>{columns.length} COLS</span>
@@ -327,23 +343,31 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
          </div>
 
          {/* Spreadsheet View */}
-<div className="relative overflow-x-auto excel-wrapper text-sm bg-background">
-             <Spreadsheet 
-                data={spreadsheetData} 
-                onChange={handleDataChange}
-                columnLabels={columnLabels as any} 
-                rowLabels={data.map((_, i) => <RowLabel key={i} index={i} /> as any)}
-                DataViewer={DataViewer}
-                className="w-full"
-                darkMode={true} 
-            />
+<div className="relative overflow-auto max-h-[60vh] excel-wrapper text-sm bg-background">
+             {resetting ? (
+                 <div className="w-full h-40 flex flex-col items-center justify-center text-muted-foreground gap-2">
+                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                     <span className="text-xs">Updating table...</span>
+                 </div>
+             ) : (
+                 <Spreadsheet 
+                    key={columns.join(',')} 
+                    data={spreadsheetData} 
+                    onChange={handleDataChange}
+                    columnLabels={columnLabels as any} 
+                    rowLabels={data.map((_, i) => <RowLabel key={i} index={i} /> as any)}
+                    DataViewer={DataViewer}
+                    className="w-full"
+                    darkMode={true} 
+                />
+             )}
          </div>
          
          {/* Bottom Action Bar */}
          <button 
                 onClick={addRow} 
                 className={cn(
-                    "w-full h-8 flex items-center justify-center gap-2 text-[10px] font-medium text-muted-foreground  hover:text-foreground hover:bg-muted/50 transition-all border-t border-border/50 bg-muted/20",
+                    "w-full h-8 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground  hover:text-foreground hover:bg-muted/50 transition-all border-t border-border/50 bg-muted/20",
                     data.length === 0 && "py-8 flex-col gap-3 text-muted-foreground hover:text-foreground"
                 )}
              >
@@ -364,7 +388,7 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
 
       {/* Footer Info */}
       <div className="flex justify-between items-center pt-3 px-1">
-        <div className="text-[10px] text-muted-foreground font-mono flex items-center gap-2">
+        <div className="text-xs text-muted-foreground font-mono flex items-center gap-2">
             {errorCount > 0 ? (
                  <span className="text-yellow-500/80 flex items-center gap-1.5 bg-yellow-500/5 px-2 py-1 rounded border border-yellow-500/10">
                     <AlertTriangle size={10} /> 
@@ -383,7 +407,7 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
         .excel-wrapper table {
             border-collapse: separate !important;
             border-spacing: 0;
-            width: 100%;
+            min-width: 100%; /* Changed from width: 100% to allow expansion */
         }
         .excel-wrapper th {
             background: var(--background) !important;
@@ -391,7 +415,7 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
             border-bottom: 1px solid var(--border) !important;
             padding: 0 !important;
             height: 38px !important;
-            min-width: 140px;
+            min-width: 160px; /* Increased slightly */
             position: sticky !important;
             color: var(--muted-foreground) !important;
         }
@@ -432,6 +456,7 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
             background: var(--card);
             color: var(--card-foreground);
             height: 38px !important;
+            min-width: 160px; /* MATCH HEADER MIN-WIDTH */
         }
         .excel-wrapper input {
             background: var(--card) !important;
@@ -441,7 +466,7 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
             height: 100% !important;
             border: none !important;
             outline: none !important;
-            font-size: 13px;
+            font-size: 14px;
         }
         .excel-wrapper td.selected {
             border: 1px solid var(--ring) !important;

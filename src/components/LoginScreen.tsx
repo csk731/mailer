@@ -14,7 +14,7 @@ export function LoginScreen({ onLogin, loggingIn }: LoginScreenProps) {
             <div className="text-center space-y-6 max-w-md">
                 <div className="space-y-2">
                      <div className="mb-4"></div>
-                    <h1 className="text-3xl font-bold">Welcome to Mailer</h1>
+                    <h1 className="text-4xl font-bold font-[family-name:var(--font-bitcount)] tracking-wide pt-2">Welcome to Mailer</h1>
                     <p className="text-muted-foreground">Send personalized email campaigns with ease</p>
                 </div>
                 <div className="space-y-4">

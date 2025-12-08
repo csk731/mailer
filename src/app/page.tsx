@@ -212,8 +212,8 @@ export default function Home() {
       <nav className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <span className="font-bold text-lg tracking-tight">
-                {user ? `${user.given_name}'s Mailer` : 'Mailer'}
+             <span className="font-bold text-lg sm:text-xl md:text-2xl tracking-tight font-[family-name:var(--font-bitcount)]">
+                {user ? `${user.given_name.split(' ')[0]}'s Mailer` : 'Mailer'}
             </span>
           </div>
           

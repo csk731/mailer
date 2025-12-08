@@ -104,7 +104,7 @@ export function EmailPreview({
                 <div className="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500/30" />
             </div>
            
-           <div className="p-8 space-y-6">
+           <div className="p-8 space-y-6 font-sans">
                 <div className="space-y-1 pb-4 border-b border-border/50">
                     <div className="flex gap-4 items-baseline">
                         <span className="text-muted-foreground w-16 text-sm shrink-0 font-medium">From:</span>
@@ -118,11 +118,11 @@ export function EmailPreview({
                     </div>
                      <div className="flex gap-4 items-baseline">
                         <span className="text-muted-foreground w-16 text-sm shrink-0 font-medium">Subject:</span>
-                        <span className="text-sm font-semibold text-foreground break-words break-all min-w-0 flex-1">{subject}</span>
+                        <span className="text-foreground font-medium break-all tracking-wide text-sm">{subject}</span>
                     </div>
                 </div>
                 
-                <div className="prose prose-sm dark:prose-invert max-w-none min-h-[100px] whitespace-pre-wrap font-sans text-foreground leading-relaxed break-words break-all">
+                <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 whitespace-pre-wrap font-sans text-sm leading-relaxed break-words">
                     {body}
                 </div>
 
@@ -133,12 +133,17 @@ export function EmailPreview({
                          </div>
                          <div className="flex flex-wrap gap-2">
                              {attachments.map((file, i) => (
-                                 <div key={file.name + i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/50 group select-none">
-                                     <div className="w-8 h-8 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                 <div 
+                                    key={file.name + i} 
+                                    onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/50 group select-none cursor-pointer hover:bg-muted/50 hover:border-indigo-500/30 hover:shadow-sm transition-all"
+                                    title="Click to preview file"
+                                 >
+                                     <div className="w-8 h-8 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
                                          <Mail size={16} /> {/* Generic file icon fallback */}
                                      </div>
                                      <div className="flex flex-col">
-                                         <span className="text-xs font-medium text-foreground truncate max-w-[150px]">{file.name}</span>
+                                         <span className="text-xs font-medium text-foreground truncate max-w-[150px] group-hover:text-indigo-400 transition-colors">{file.name}</span>
                                          <span className="text-[10px] text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</span>
                                      </div>
                                  </div>
