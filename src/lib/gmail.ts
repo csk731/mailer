@@ -30,7 +30,7 @@ export function replacePlaceholders(template: string, data: Recipient): string {
 }
 
 export async function createMimeMessage(data: EmailData): Promise<string> {
-  const boundary = "foo_bar_baz";
+  const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   const parts: string[] = [];
 
   // Headers
@@ -41,6 +41,7 @@ export async function createMimeMessage(data: EmailData): Promise<string> {
   parts.push(`To: ${data.to}`);
   parts.push(`Subject: ${data.subject}`);
   parts.push(`MIME-Version: 1.0`);
+  parts.push(`X-Mailer: Mailer/1.0`);
   parts.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
   parts.push(``);
 

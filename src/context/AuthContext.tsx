@@ -21,38 +21,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
+  const [tokenExpiry, setTokenExpiry] = useState<number | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
 
   useEffect(() => {
-    const storedToken = sessionStorage.getItem('gmail_token');
-    const storedUser = localStorage.getItem('gmail_user');
-    const storedExpiry = sessionStorage.getItem('gmail_token_expiry');
-    
-    if (storedToken && storedUser && storedExpiry) {
-        const now = Date.now();
-        const expiryTime = parseInt(storedExpiry, 10);
-        
-        if (now >= expiryTime - 60000) {
-            console.warn("Token expired, clearing session");
-            sessionStorage.removeItem('gmail_token');
-            localStorage.removeItem('gmail_user');
-            sessionStorage.removeItem('gmail_token_expiry');
-            setToken(null);
-            setUser(null);
-        } else {
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
-        }
-    } else {
-        if (storedToken || storedUser) {
-            sessionStorage.removeItem('gmail_token');
-            localStorage.removeItem('gmail_user');
-            sessionStorage.removeItem('gmail_token_expiry');
-        }
-    }
-    setLoading(false);
+    sessionStorage.removeItem('gmail_token');
+    sessionStorage.removeItem('gmail_token_expiry');
+    localStorage.removeItem('gmail_token');
+    localStorage.removeItem('gmail_token_expiry');
   }, []);
 
   const login = (dynamicClientId?: string) => {
@@ -81,8 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const expiryTime = Date.now() + (expiresIn * 1000);
             
             setToken(accessToken);
-            sessionStorage.setItem('gmail_token', accessToken);
-            sessionStorage.setItem('gmail_token_expiry', expiryTime.toString());
+            setTokenExpiry(expiryTime);
 
             try {
                 const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
@@ -97,7 +74,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     picture: userData.picture
                 };
                 setUser(profile);
-                localStorage.setItem('gmail_user', JSON.stringify(profile));
                 
                 toast.success("Successfully logged in!", {
                    description: `Welcome, ${userData.name || userData.email}`
@@ -129,22 +105,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
   
       setToken(null);
+      setTokenExpiry(null);
       setUser(null);
-      sessionStorage.removeItem('gmail_token');
-      localStorage.removeItem('gmail_user');
-      sessionStorage.removeItem('gmail_token_expiry');
       toast.success("Logged out successfully");
   };
 
   const checkTokenValidity = () => {
-    const storedExpiry = sessionStorage.getItem('gmail_token_expiry');
-    if (storedExpiry) {
-        if (Date.now() >= parseInt(storedExpiry, 10)) {
+    if (tokenExpiry) {
+        if (Date.now() >= tokenExpiry) {
             setToken(null);
+            setTokenExpiry(null);
             setUser(null);
-            sessionStorage.removeItem('gmail_token');
-            localStorage.removeItem('gmail_user');
-            sessionStorage.removeItem('gmail_token_expiry');
             toast.error("Session expired", { description: "Please log in again." });
             return false;
         }
