@@ -47,9 +47,10 @@ export async function createMimeMessage(data: EmailData): Promise<string> {
   // Body part
   parts.push(`--${boundary}`);
   parts.push(`Content-Type: text/html; charset="UTF-8"`);
-  parts.push(`Content-Transfer-Encoding: 7bit`);
+  const bodyBase64 = btoa(unescape(encodeURIComponent(data.body)));
+  parts.push(`Content-Transfer-Encoding: base64`);
   parts.push(``);
-  parts.push(data.body);
+  parts.push(bodyBase64);
   parts.push(``);
 
   // Attachments

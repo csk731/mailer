@@ -116,15 +116,13 @@ export default function Home() {
       if (!checkTokenValidity()) return;
       if (!token || !user) return;
 
-      // 2. Guard: Re-Validate everything (Extra Cautious)
-      // We pass a dummy callback because we just want the boolean result and toasts
+      let trimmedDataForSend: Record<string, string>[] | null = null;
       const isValid = validateCampaign(
           { data, columns, subject, body, attachments }, 
-          () => {} 
+          (trimmed) => { trimmedDataForSend = trimmed; }
       );
-      if (!isValid) return;
+      if (!isValid || !trimmedDataForSend) return;
 
-      // 3. Guard: Explicit User Confirmation
       if (!confirm(`Are you sure you want to send this campaign to ${data.length} recipients?\n\nThis action cannot be undone.`)) {
           return;
       }
@@ -133,7 +131,7 @@ export default function Home() {
       setTimeout(() => {
           logsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
-      await sendCampaign(token, user, data, subject, body, attachments);
+      await sendCampaign(token, user, trimmedDataForSend, subject, body, attachments);
   };
 
   const handleDownloadLogs = () => {
@@ -371,9 +369,7 @@ export default function Home() {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     onSend={() => {
-                        if(confirm(`Are you sure you want to send emails to ${data.length} recipients?`)) {
-                            handleSend();
-                        }
+                        handleSend();
                     }}
                 />
                 
@@ -426,7 +422,9 @@ export default function Home() {
                                     log.status === 'success' ? "text-emerald-400/90" : 
                                     log.status === 'error' ? "text-rose-400/90" : "text-indigo-300/80"
                                 )}>
-                                    <span className="opacity-40 select-none">[{new Date().toLocaleTimeString()}]</span>
+                                    <span className="opacity-40 select-none">
+                                        [{log.timestamp?.toLocaleTimeString() ?? new Date().toLocaleTimeString()}]
+                                    </span>
                                     <span>{log.msg}</span>
                                 </div>
                             ))}
@@ -437,19 +435,6 @@ export default function Home() {
         )}
 
       </main>
-
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #1e1e24; 
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #3f3f46; 
-            border-radius: 3px;
-        }
-      `}</style>
     </div>
   );
 }

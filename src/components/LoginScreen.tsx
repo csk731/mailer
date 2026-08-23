@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Key, Loader2, Sparkles } from "lucide-react";
 
 interface LoginScreenProps {
@@ -7,7 +7,19 @@ interface LoginScreenProps {
 }
 
 export function LoginScreen({ onLogin, loggingIn }: LoginScreenProps) {
-    const [clientId, setClientId] = useState("");
+    const SAVED_CLIENT_ID_KEY = 'mailer_client_id';
+    const [clientId, setClientId] = React.useState<string>(
+        () => (typeof window !== 'undefined' ? localStorage.getItem(SAVED_CLIENT_ID_KEY) ?? "" : "")
+    );
+
+    const handleClientIdChange = (val: string) => {
+        setClientId(val);
+        if (val) {
+            localStorage.setItem(SAVED_CLIENT_ID_KEY, val);
+        } else {
+            localStorage.removeItem(SAVED_CLIENT_ID_KEY);
+        }
+    };
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -25,7 +37,7 @@ export function LoginScreen({ onLogin, loggingIn }: LoginScreenProps) {
                               type="text" 
                               placeholder="Enter Client ID" 
                               value={clientId}
-                              onChange={e => setClientId(e.target.value)}
+                              onChange={e => handleClientIdChange(e.target.value)}
                               className="w-full pl-9 pr-4 py-2 bg-muted/50 border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                           />
                         </div>

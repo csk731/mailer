@@ -27,6 +27,7 @@ const playfair = Playfair_Display({
 import { AuthProvider } from "@/context/AuthContext";
 import { GlobalErrorHandler } from "@/components/GlobalErrorHandler";
 import { ThemeProvider } from "@/components/theme-provider";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "Mailer",
@@ -43,7 +44,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${bitcount.variable} ${playfair.variable} antialiased`}
       >
-        <script src="https://accounts.google.com/gsi/client" async defer></script>
+        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         <GlobalErrorHandler />
         <AuthProvider>
             <ThemeProvider

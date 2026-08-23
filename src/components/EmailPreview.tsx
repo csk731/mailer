@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, User, Mail, Send, Loader2, ArrowLeft } from "lucide-react";
 import { replacePlaceholders } from "@/lib/gmail";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,29 @@ export function EmailPreview({
   sending
 }: EmailPreviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const objectUrlsRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    const currentKeys = new Set(attachments.map(f => f.name + f.size));
+    for (const [key, url] of objectUrlsRef.current.entries()) {
+        if (!currentKeys.has(key)) {
+            URL.revokeObjectURL(url);
+            objectUrlsRef.current.delete(key);
+        }
+    }
+    attachments.forEach(f => {
+        const key = f.name + f.size;
+        if (!objectUrlsRef.current.has(key)) {
+            objectUrlsRef.current.set(key, URL.createObjectURL(f));
+        }
+    });
+    return () => {
+        objectUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+        objectUrlsRef.current.clear();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attachments]);
 
   const currentRecipient = data[currentIndex];
   
@@ -135,7 +158,11 @@ export function EmailPreview({
                              {attachments.map((file, i) => (
                                  <div 
                                     key={file.name + i} 
-                                    onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                    onClick={() => {
+                                      const key = file.name + file.size;
+                                      const url = objectUrlsRef.current.get(key);
+                                      if (url) window.open(url, '_blank');
+                                  }}
                                     className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/50 group select-none cursor-pointer hover:bg-muted/50 hover:border-indigo-500/30 hover:shadow-sm transition-all"
                                     title="Click to preview file"
                                  >

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { EmailData, SendLog, SendProgress, UserProfile } from "@/lib/types";
 import { createMimeMessage, replacePlaceholders, sendEmail } from "@/lib/gmail";
+import { escapeHtml } from "@/lib/utils";
 import { toast } from "sonner";
 
 export function useEmailCampaign() {
@@ -21,12 +22,14 @@ export function useEmailCampaign() {
     const total = data.length;
     setProgress({ sent: 0, total, failed: 0 });
 
+    let sentCount = 0;
+    let failedCount = 0;
+
     const fromName = user.given_name && user.family_name 
         ? `${user.given_name} ${user.family_name}` 
         : user.name;
 
-    // Gmail API rate limiting: max ~100 emails/minute to be safe
-    let baseDelay = 1000; // 1 second between emails
+    let baseDelay = 1000;
     let consecutiveErrors = 0;
 
     for (let i = 0; i < total; i++) {
@@ -35,13 +38,18 @@ export function useEmailCampaign() {
         
         if (!recipientEmail) {
              setLogs(prev => [...prev, { status: 'info', msg: `Skipped row ${i+1}: Missing Email`, timestamp: new Date() }]);
-             toast.info(`Skipped row ${i+1}: Missing email address`);
+             failedCount++;
+             setProgress(prev => ({ ...prev, failed: prev.failed + 1 }));
              continue;
         }
 
         try {
-            const processedSubject = replacePlaceholders(subject, row);
-            const processedBody = replacePlaceholders(body, row).replace(/\n/g, '<br>');
+            const escapedRow: Record<string, string> = {};
+            Object.keys(row).forEach(k => { escapedRow[k] = escapeHtml(row[k]); });
+
+            const processedSubject = replacePlaceholders(subject, escapedRow);
+            const processedBody = replacePlaceholders(escapeHtml(body), escapedRow)
+                .replace(/\n/g, '<br>');
             const rawMessage = await createMimeMessage({
                 to: recipientEmail,
                 subject: processedSubject,
@@ -51,13 +59,15 @@ export function useEmailCampaign() {
             });
 
             await sendEmail(token, rawMessage);
+            sentCount++;
             setProgress(prev => ({ ...prev, sent: prev.sent + 1 }));
             setLogs(prev => [...prev, { status: 'success', msg: `Sent to ${recipientEmail}`, timestamp: new Date() }]);
-            consecutiveErrors = 0; // Reset error counter on success
+            consecutiveErrors = 0;
             
         } catch (error: unknown) {
             console.error(error);
             consecutiveErrors++;
+            failedCount++;
             setProgress(prev => ({ ...prev, failed: prev.failed + 1 }));
             
             // Parse error message safely
@@ -82,7 +92,7 @@ export function useEmailCampaign() {
                 toast.error(`Rate limit hit! Slowing down...`, {
                     description: `Failed to send to ${recipientEmail}`
                 });
-                baseDelay = Math.min(baseDelay * 2, 10000); // Exponential backoff, max 10s
+                baseDelay = Math.min(baseDelay * 2, 10000);
             } else {
                 toast.error(`Failed to send to ${recipientEmail}`, {
                     description: errorMsg
@@ -106,19 +116,13 @@ export function useEmailCampaign() {
     
     setSending(false);
     
-    // Show final summary
-    const finalProgress = { 
-        sent: total - progress.failed - consecutiveErrors, 
-        failed: progress.failed + consecutiveErrors 
-    };
-    
-    if (finalProgress.failed === 0) {
+    if (failedCount === 0) {
         toast.success(`Campaign complete!`, {
-            description: `Successfully sent ${finalProgress.sent} email${finalProgress.sent !== 1 ? 's' : ''}`
+            description: `Successfully sent ${sentCount} email${sentCount !== 1 ? 's' : ''}`
         });
     } else {
         toast.warning(`Campaign finished with errors`, {
-            description: `Sent: ${finalProgress.sent}, Failed: ${finalProgress.failed}`
+            description: `Sent: ${sentCount}, Failed: ${failedCount}`
         });
     }
   };

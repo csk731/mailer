@@ -25,22 +25,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [loggingIn, setLoggingIn] = useState(false);
 
-  // Restore session
   useEffect(() => {
-    const storedToken = localStorage.getItem('gmail_token');
+    const storedToken = sessionStorage.getItem('gmail_token');
     const storedUser = localStorage.getItem('gmail_user');
-    const storedExpiry = localStorage.getItem('gmail_token_expiry');
+    const storedExpiry = sessionStorage.getItem('gmail_token_expiry');
     
     if (storedToken && storedUser && storedExpiry) {
         const now = Date.now();
         const expiryTime = parseInt(storedExpiry, 10);
         
-        // Check if token is expired (or close to expiring, e.g. within 1 min)
         if (now >= expiryTime - 60000) {
             console.warn("Token expired, clearing session");
-            localStorage.removeItem('gmail_token');
+            sessionStorage.removeItem('gmail_token');
             localStorage.removeItem('gmail_user');
-            localStorage.removeItem('gmail_token_expiry');
+            sessionStorage.removeItem('gmail_token_expiry');
             setToken(null);
             setUser(null);
         } else {
@@ -48,11 +46,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(JSON.parse(storedUser));
         }
     } else {
-        // Inconsistent state, clear all
         if (storedToken || storedUser) {
-            localStorage.removeItem('gmail_token');
+            sessionStorage.removeItem('gmail_token');
             localStorage.removeItem('gmail_user');
-            localStorage.removeItem('gmail_token_expiry');
+            sessionStorage.removeItem('gmail_token_expiry');
         }
     }
     setLoading(false);
@@ -80,14 +77,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       callback: async (response: any) => {
         if (response.access_token) {
             const accessToken = response.access_token;
-            const expiresIn = response.expires_in || 3599; // Default to ~1h if missing
+            const expiresIn = response.expires_in || 3599;
             const expiryTime = Date.now() + (expiresIn * 1000);
             
             setToken(accessToken);
-            localStorage.setItem('gmail_token', accessToken);
-            localStorage.setItem('gmail_token_expiry', expiryTime.toString());
+            sessionStorage.setItem('gmail_token', accessToken);
+            sessionStorage.setItem('gmail_token_expiry', expiryTime.toString());
 
-            // Fetch User Info
             try {
                 const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
                     headers: { Authorization: `Bearer ${accessToken}` }
@@ -128,31 +124,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-      // Confirmation Dialog
       if (!confirm("Are you sure you want to log out?")) {
         return;
       }
   
       setToken(null);
       setUser(null);
-      localStorage.removeItem('gmail_token');
+      sessionStorage.removeItem('gmail_token');
       localStorage.removeItem('gmail_user');
-      localStorage.removeItem('gmail_token_expiry');
+      sessionStorage.removeItem('gmail_token_expiry');
       toast.success("Logged out successfully");
-      // Optional: Clear any critical app state if necessary, 
-      // but Context separation usually handles this as Page unmounts.
   };
 
   const checkTokenValidity = () => {
-    const storedExpiry = localStorage.getItem('gmail_token_expiry');
+    const storedExpiry = sessionStorage.getItem('gmail_token_expiry');
     if (storedExpiry) {
         if (Date.now() >= parseInt(storedExpiry, 10)) {
-            // Force logout without confirmation for expiry
             setToken(null);
             setUser(null);
-            localStorage.removeItem('gmail_token');
+            sessionStorage.removeItem('gmail_token');
             localStorage.removeItem('gmail_user');
-            localStorage.removeItem('gmail_token_expiry');
+            sessionStorage.removeItem('gmail_token_expiry');
             toast.error("Session expired", { description: "Please log in again." });
             return false;
         }

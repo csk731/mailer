@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Paperclip, X, Sparkles, FileIcon, Mail, Type } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -29,8 +29,30 @@ export function EmailComposer({
   const subjectInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
   
-  // Track last focused element to know where to insert variable
   const [lastFocused, setLastFocused] = useState<'subject' | 'body' | null>(null);
+
+  const objectUrlsRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    const currentKeys = new Set(attachments.map(f => f.name + f.size));
+    for (const [key, url] of objectUrlsRef.current.entries()) {
+        if (!currentKeys.has(key)) {
+            URL.revokeObjectURL(url);
+            objectUrlsRef.current.delete(key);
+        }
+    }
+    attachments.forEach(f => {
+        const key = f.name + f.size;
+        if (!objectUrlsRef.current.has(key)) {
+            objectUrlsRef.current.set(key, URL.createObjectURL(f));
+        }
+    });
+    return () => {
+        objectUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+        objectUrlsRef.current.clear();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attachments]);
 
   const insertVariable = (variable: string) => {
     // Determine target based on active element or last focused state
@@ -172,9 +194,13 @@ export function EmailComposer({
                   {/* File List */}
                   <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-fade-right">
                       {attachments.map((file, i) => (
-                          <div 
+                           <div 
                             key={file.name + i} 
-                            onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                            onClick={() => {
+                              const key = file.name + file.size;
+                              const url = objectUrlsRef.current.get(key);
+                              if (url) window.open(url, '_blank');
+                           }}
                             className="flex items-center gap-2 pl-2 pr-1 py-1 rounded bg-background border border-border text-[11px] text-foreground animate-in fade-in zoom-in duration-200 shrink-0 group select-none cursor-pointer hover:border-indigo-500/50 hover:bg-muted/50 transition-colors"
                             title="Click to preview"
                           >
@@ -200,19 +226,6 @@ export function EmailComposer({
               </div>
           </div>
        </div>
-       
-       <style jsx>{`
-         .mask-fade-right {
-             mask-image: linear-gradient(to right, black 90%, transparent 100%);
-         }
-         .no-scrollbar::-webkit-scrollbar {
-             display: none;
-         }
-         .no-scrollbar {
-             -ms-overflow-style: none;
-             scrollbar-width: none;
-         }
-       `}</style>
     </div>
   );
 }

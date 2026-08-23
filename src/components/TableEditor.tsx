@@ -64,9 +64,20 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
   
   const removeRow = (index: number) => {
       const newData = [...data];
+      const deletedRow = { ...newData[index] };
+      const dataBeforeDelete = [...data];
       newData.splice(index, 1);
       setData(newData);
-      toast.success("Row deleted");
+      toast.success(`Row ${index + 1} deleted`, {
+          action: {
+              label: "Undo",
+              onClick: () => {
+                  const restored = [...dataBeforeDelete];
+                  setData(restored);
+              }
+          },
+          duration: 4000,
+      });
   };
 
   const { spreadsheetData, errorCount } = useMemo(() => {
@@ -76,13 +87,9 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
         const val = row[col] || "";
         const trimmedVal = val.trim();
         let className = "outline-none transition-colors duration-200";
-        // Base style handles in CSS, this is for cell specific overrides
         
-        if (!trimmedVal) {
-             // Let CSS handle basic empty state, but we track errors
-             errors++;
-        } else if (col === "EMAIL" && !EMAIL_REGEX.test(trimmedVal)) {
-             errors++;
+        if (col === "EMAIL" && trimmedVal && !EMAIL_REGEX.test(trimmedVal)) {
+            errors++;
         }
         
         return { 
@@ -351,7 +358,7 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
                  </div>
              ) : (
                  <Spreadsheet 
-                    key={`${columns.join(',')}-${data.length}`} 
+                    key={columns.join(',')} 
                     data={spreadsheetData} 
                     onChange={handleDataChange}
                     columnLabels={columnLabels as any} 
@@ -402,93 +409,6 @@ export function TableEditor({ columns, setColumns, data, setData, className }: T
         </div>
         
       </div>
-      
-      <style jsx global>{`
-        .excel-wrapper table {
-            border-collapse: separate !important;
-            border-spacing: 0;
-            min-width: 100%; /* Changed from width: 100% to allow expansion */
-        }
-        .excel-wrapper th {
-            background: var(--background) !important;
-            border-right: 1px solid var(--border) !important;
-            border-bottom: 1px solid var(--border) !important;
-            padding: 0 !important;
-            height: 38px !important;
-            min-width: 160px; /* Increased slightly */
-            position: sticky !important;
-            color: var(--muted-foreground) !important;
-        }
-        /* Column Headers (Top Row) */
-        .excel-wrapper tr:first-child th {
-            top: 0;
-            z-index: 10;
-        }
-        /* Top Left Corner */
-        .excel-wrapper tr:first-child th:first-child {
-             width: 40px !important; 
-             min-width: 40px !important;
-             max-width: 40px !important; 
-             z-index: 20;
-             position: sticky !important;
-             left: 0;
-        }
-        /* Row Headers (Row Numbers) */
-        .excel-wrapper tr:not(:first-child) th {
-            top: auto !important;
-            left: 0;
-            z-index: 9;
-            width: 40px !important;
-            min-width: 40px !important;
-            max-width: 40px !important;
-        }
-        .excel-wrapper td:first-child {
-             position: sticky !important;
-             left: 0;
-             z-index: 9;
-             background: var(--background) !important;
-             border-right: 1px solid var(--border) !important;
-        }
-        .excel-wrapper td {
-            border-right: 1px solid var(--border) !important;
-            border-bottom: 1px solid var(--border) !important;
-            padding: 0 !important;
-            background: var(--card);
-            color: var(--card-foreground);
-            height: 38px !important;
-            min-width: 160px; /* MATCH HEADER MIN-WIDTH */
-        }
-        .excel-wrapper input {
-            background: var(--card) !important;
-            color: var(--card-foreground) !important;
-            padding: 0 12px !important;
-            width: 100% !important;
-            height: 100% !important;
-            border: none !important;
-            outline: none !important;
-            font-size: 14px;
-        }
-        .excel-wrapper td.selected {
-            border: 1px solid var(--ring) !important;
-            box-shadow: 0 0 0 1px #6366f1; /* Indigo-500 */
-            z-index: 5;
-        }
-        /* Custom scrollbar for webkit */
-        .excel-wrapper::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        .excel-wrapper::-webkit-scrollbar-track {
-            background: var(--background);
-        }
-        .excel-wrapper::-webkit-scrollbar-thumb {
-            background: var(--muted);
-            border-radius: 4px;
-        }
-        .excel-wrapper::-webkit-scrollbar-thumb:hover {
-            background: var(--muted-foreground);
-        }
-      `}</style>
     </div>
   );
 }
