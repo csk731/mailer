@@ -13,6 +13,7 @@ export function base64Encode(str: string): string {
 }
 
 export function escapeHtml(str: string): string {
+  if (!str || typeof str !== "string") return "";
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
