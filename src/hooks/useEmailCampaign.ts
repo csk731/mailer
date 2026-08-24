@@ -1,44 +1,69 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { EmailData, SendLog, SendProgress, UserProfile } from "@/lib/types";
 import { createMimeMessage, replacePlaceholders, sendEmail } from "@/lib/gmail";
 import { escapeHtml } from "@/lib/utils";
 import { toast } from "sonner";
 
+interface CampaignContext {
+  token: string;
+  user: UserProfile;
+  data: Record<string, string>[];
+  subject: string;
+  body: string;
+  attachments: File[];
+  throttleMs: number;
+  startIndex: number;
+}
+
 export function useEmailCampaign() {
   const [sending, setSending] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [authExpired, setAuthExpired] = useState(false);
   const [progress, setProgress] = useState<SendProgress>({ sent: 0, total: 0, failed: 0 });
   const [logs, setLogs] = useState<SendLog[]>([]);
+  const [failedRecipients, setFailedRecipients] = useState<Record<string, string>[]>([]);
 
-  const sendCampaign = async (
-    token: string, 
-    user: UserProfile, 
-    data: Record<string, string>[], 
-    subject: string, 
-    body: string, 
-    attachments: File[]
-  ) => {
+  const pauseRequestedRef = useRef(false);
+  const campaignContextRef = useRef<CampaignContext | null>(null);
+
+  const runQueue = async (ctx: CampaignContext) => {
     setSending(true);
-    setLogs([]);
-    const total = data.length;
-    setProgress({ sent: 0, total, failed: 0 });
+    setIsPaused(false);
+    setAuthExpired(false);
+    pauseRequestedRef.current = false;
 
-    let sentCount = 0;
-    let failedCount = 0;
+    const { token, user, data, subject, body, attachments, throttleMs, startIndex } = ctx;
+    const total = data.length;
+
+    let sentCount = progress.sent;
+    let failedCount = progress.failed;
+    const currentFailed = [...failedRecipients];
 
     const fromName = user.given_name && user.family_name 
         ? `${user.given_name} ${user.family_name}` 
         : user.name;
 
-    let baseDelay = 1000;
+    let baseDelay = throttleMs;
     let consecutiveErrors = 0;
 
-    for (let i = 0; i < total; i++) {
+    for (let i = startIndex; i < total; i++) {
+        // Check if user requested pause
+        if (pauseRequestedRef.current) {
+            campaignContextRef.current = { ...ctx, startIndex: i };
+            setIsPaused(true);
+            setSending(false);
+            toast.info("Campaign paused", { description: `Paused at recipient ${i + 1} of ${total}.` });
+            return;
+        }
+
         const row = data[i];
         const recipientEmail = row.EMAIL || row.Email || "";
         
         if (!recipientEmail) {
              setLogs(prev => [...prev, { status: 'info', msg: `Skipped row ${i+1}: Missing Email`, timestamp: new Date() }]);
              failedCount++;
+             currentFailed.push(row);
+             setFailedRecipients([...currentFailed]);
              setProgress(prev => ({ ...prev, failed: prev.failed + 1 }));
              continue;
         }
@@ -64,32 +89,37 @@ export function useEmailCampaign() {
             setLogs(prev => [...prev, { status: 'success', msg: `Sent to ${recipientEmail}`, timestamp: new Date() }]);
             consecutiveErrors = 0;
             
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error(error);
+            const isAuth = error?.status === 401 || (error?.message && error.message.includes('401'));
+
+            if (isAuth) {
+                // Immediate 401 handling: pause and request session renewal
+                campaignContextRef.current = { ...ctx, startIndex: i };
+                setAuthExpired(true);
+                setIsPaused(true);
+                setSending(false);
+                toast.error("Connection paused", {
+                    description: "Your Google session timed out. Click 'Reconnect & Resume' to continue."
+                });
+                return;
+            }
+
             consecutiveErrors++;
             failedCount++;
+            currentFailed.push(row);
+            setFailedRecipients([...currentFailed]);
             setProgress(prev => ({ ...prev, failed: prev.failed + 1 }));
             
-            // Parse error message safely
-            let errorMsg = "Unknown error";
-            if (error instanceof Error) {
-                errorMsg = error.message;
-            } else if (typeof error === 'string') {
-                errorMsg = error;
-            } else if (typeof error === 'object' && error !== null && 'message' in error) {
-                 errorMsg = String((error as any).message);
-            } else {
-                 errorMsg = String(error);
-            }
+            let errorMsg = error?.message || "Unknown error";
             const isRateLimit = errorMsg.toLowerCase().includes('rate') || 
                                errorMsg.toLowerCase().includes('quota') ||
                                errorMsg.toLowerCase().includes('429');
             
             setLogs(prev => [...prev, { status: 'error', msg: `Failed ${recipientEmail}: ${errorMsg}`, timestamp: new Date() }]);
             
-            // Show toast for errors
             if (isRateLimit) {
-                toast.error(`Rate limit hit! Slowing down...`, {
+                toast.error(`Sending limit reached. Slowing down...`, {
                     description: `Failed to send to ${recipientEmail}`
                 });
                 baseDelay = Math.min(baseDelay * 2, 10000);
@@ -99,22 +129,24 @@ export function useEmailCampaign() {
                 });
             }
             
-            // Stop campaign if too many consecutive errors
             if (consecutiveErrors >= 5) {
+                campaignContextRef.current = { ...ctx, startIndex: i + 1 };
                 toast.error('Too many consecutive errors. Campaign paused.', {
                     description: 'Please check your connection and try again.'
                 });
+                setIsPaused(true);
                 setSending(false);
                 return;
             }
         }
         
-        // Adaptive delay based on errors
         const delay = consecutiveErrors > 0 ? baseDelay * (consecutiveErrors + 1) : baseDelay;
         await new Promise(r => setTimeout(r, delay));
     }
     
     setSending(false);
+    setIsPaused(false);
+    campaignContextRef.current = null;
     
     if (failedCount === 0) {
         toast.success(`Campaign complete!`, {
@@ -127,11 +159,68 @@ export function useEmailCampaign() {
     }
   };
 
-  const resetCampaign = () => {
+  const sendCampaign = async (
+    token: string, 
+    user: UserProfile, 
+    data: Record<string, string>[], 
+    subject: string, 
+    body: string, 
+    attachments: File[],
+    throttleMs: number = 1000
+  ) => {
     setLogs([]);
-    setProgress({ sent: 0, total: 0, failed: 0 });
-    setSending(false);
+    setFailedRecipients([]);
+    setProgress({ sent: 0, total: data.length, failed: 0 });
+
+    const ctx: CampaignContext = {
+      token,
+      user,
+      data,
+      subject,
+      body,
+      attachments,
+      throttleMs,
+      startIndex: 0
+    };
+    campaignContextRef.current = ctx;
+    await runQueue(ctx);
   };
 
-  return { sending, progress, logs, sendCampaign, resetCampaign };
+  const pauseCampaign = () => {
+    pauseRequestedRef.current = true;
+  };
+
+  const resumeCampaign = async (newToken?: string) => {
+    if (!campaignContextRef.current) return;
+    const ctx = {
+      ...campaignContextRef.current,
+      token: newToken || campaignContextRef.current.token
+    };
+    campaignContextRef.current = ctx;
+    await runQueue(ctx);
+  };
+
+  const resetCampaign = () => {
+    pauseRequestedRef.current = false;
+    campaignContextRef.current = null;
+    setLogs([]);
+    setProgress({ sent: 0, total: 0, failed: 0 });
+    setFailedRecipients([]);
+    setSending(false);
+    setIsPaused(false);
+    setAuthExpired(false);
+  };
+
+  return { 
+    sending, 
+    isPaused, 
+    authExpired, 
+    progress, 
+    logs, 
+    failedRecipients, 
+    sendCampaign, 
+    pauseCampaign, 
+    resumeCampaign, 
+    resetCampaign 
+  };
 }

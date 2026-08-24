@@ -24,7 +24,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.googleusercontent.com https://accounts.google.com",
-      "connect-src 'self' https://accounts.google.com https://gmail.googleapis.com https://www.googleapis.com",
+      "connect-src 'self' https://accounts.google.com https://gmail.googleapis.com https://www.googleapis.com https://oauth2.googleapis.com",
       "font-src 'self' data:",
       "frame-src https://accounts.google.com",
       "frame-ancestors 'none'",

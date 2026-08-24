@@ -42,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${bitcount.variable} ${playfair.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${bitcount.variable} ${playfair.variable} min-w-[360px] antialiased`}
       >
         <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         <GlobalErrorHandler />

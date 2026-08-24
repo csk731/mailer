@@ -15,31 +15,38 @@ export interface EmailData {
 export const REQUIRED_SCOPE = "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email";
 
 export function replacePlaceholders(template: string, data: Recipient): string {
-  let result = template;
-  // Match {{ Key }} patterns with generous whitespace allowance
-  const regex = /\{\{\s*([^}]+)\s*\}\}/g;
+  // Match {{ Key }} or {{ Key|fallback }} patterns with generous whitespace allowance
+  const regex = /\{\{\s*([^}|]+)(?:\|([^}]*))?\s*\}\}/g;
   
-  result = result.replace(regex, (match, key) => {
+  return template.replace(regex, (match, key, fallback) => {
     const trimmedKey = key.trim();
-    const upperKey = trimmedKey.toUpperCase(); // Convert to uppercase for matching
-    // Use the value if found, otherwise keep the match (so user sees the broken tag)
-    return data[upperKey] !== undefined ? data[upperKey] : match; 
+    const upperKey = trimmedKey.toUpperCase();
+    const foundKey = Object.keys(data).find(k => k.toUpperCase() === upperKey);
+    const val = foundKey ? data[foundKey] : (data[upperKey] ?? data[trimmedKey]);
+    if (val !== undefined && val !== null && val.trim() !== '') {
+      return val;
+    }
+    return fallback !== undefined ? fallback : match;
   });
-  
-  return result;
 }
 
 export async function createMimeMessage(data: EmailData): Promise<string> {
   const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   const parts: string[] = [];
 
+  // Defense-in-depth: Sanitize against MIME & Header Injection
+  const cleanSubject = (data.subject || "").replace(/[\r\n]+/g, " ").trim();
+  const cleanTo = (data.to || "").replace(/[\r\n]+/g, "").trim();
+  const cleanFromName = (data.from?.name || "").replace(/[\r\n"]+/g, "").trim();
+  const cleanFromEmail = (data.from?.email || "").replace(/[\r\n]+/g, "").trim();
+
   // Headers
-  const fromHeader = data.from 
-    ? `From: "${data.from.name}" <${data.from.email}>` 
+  const fromHeader = cleanFromEmail
+    ? `From: "${cleanFromName}" <${cleanFromEmail}>` 
     : `From: me`;
   parts.push(fromHeader);
-  parts.push(`To: ${data.to}`);
-  parts.push(`Subject: ${data.subject}`);
+  parts.push(`To: ${cleanTo}`);
+  parts.push(`Subject: ${cleanSubject}`);
   parts.push(`MIME-Version: 1.0`);
   parts.push(`X-Mailer: Mailer/1.0`);
   parts.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
@@ -57,11 +64,12 @@ export async function createMimeMessage(data: EmailData): Promise<string> {
   // Attachments
   if (data.attachments && data.attachments.length > 0) {
     for (const file of data.attachments) {
+      const cleanFileName = file.name.replace(/[\r\n"]+/g, "_");
       const base64Content = await fileToBase64(file);
       parts.push(`--${boundary}`);
-      parts.push(`Content-Type: ${file.type}; name="${file.name}"`);
+      parts.push(`Content-Type: ${file.type || 'application/octet-stream'}; name="${cleanFileName}"`);
       parts.push(`Content-Transfer-Encoding: base64`);
-      parts.push(`Content-Disposition: attachment; filename="${file.name}"`);
+      parts.push(`Content-Disposition: attachment; filename="${cleanFileName}"`);
       parts.push(``);
       parts.push(base64Content);
       parts.push(``);
@@ -100,8 +108,21 @@ export async function sendEmail(accessToken: string, rawMessage: string) {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || "Failed to send email");
+    let errorMsg = `Failed to send email (HTTP ${response.status})`;
+    try {
+      const errorJson = await response.json();
+      errorMsg = errorJson.error?.message || errorMsg;
+    } catch {}
+
+    if (response.status === 401) {
+      const err = new Error(`401: ${errorMsg}`);
+      (err as any).status = 401;
+      throw err;
+    }
+
+    const err = new Error(errorMsg);
+    (err as any).status = response.status;
+    throw err;
   }
 
   return response.json();

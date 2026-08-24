@@ -94,8 +94,8 @@ export function validateCampaign(
     });
 
     if (blockedFiles.length > 0) {
-        toast.error("Security: Blocked file type detected", {
-            description: `Gmail blocks: ${blockedFiles.map(f => f.name).join(', ')}. Please remove them.`
+        toast.error("File type not allowed by Gmail", {
+            description: `Gmail does not allow sending files with these extensions: ${blockedFiles.map(f => f.name).join(', ')}. Please remove them.`
         });
         return false;
     }
@@ -105,18 +105,20 @@ export function validateCampaign(
         return false;
     }
     if (!body.trim()) {
-        toast.error("Please enter an email body.");
+        toast.error("Please write a message in the email composer.");
         return false;
     }
 
-    // 3. Validate placeholders
-    const placeholderRegex = /\{\{([^}]+)\}\}/g;
+    // 3. Validate placeholders (supports {{KEY}} and {{KEY|fallback}})
+    const placeholderRegex = /\{\{\s*([^}|]+)(?:\|[^}]*)?\s*\}\}/g;
     const subjectPlaceholders = [...subject.matchAll(placeholderRegex)].map(m => m[1].trim()).filter(p => p.length > 0);
     const bodyPlaceholders = [...body.matchAll(placeholderRegex)].map(m => m[1].trim()).filter(p => p.length > 0);
 
-    const emptyPlaceholderRegex = /\{\{\s*\}\}/g;
+    const emptyPlaceholderRegex = /\{\{\s*\|?\s*\}\}/g;
     if (emptyPlaceholderRegex.test(subject) || emptyPlaceholderRegex.test(body)) {
-        toast.error("Empty placeholders found. Remove {{}} or add content.");
+        toast.error("Empty variable tag found", {
+            description: "Please remove empty {{}} tags or add a variable name like {{NAME}}."
+        });
         return false;
     }
 
@@ -126,8 +128,8 @@ export function validateCampaign(
 
     // Failures return false
     if (invalidPlaceholders.length > 0) {
-        toast.error(`Invalid placeholder(s): ${invalidPlaceholders.map(p => `{{${p}}}`).join(', ')}`, {
-            description: `Available: ${columns.join(', ')}`
+        toast.error(`Unknown variable${invalidPlaceholders.length !== 1 ? 's' : ''}: ${invalidPlaceholders.map(p => `{{${p}}}`).join(', ')}`, {
+            description: `Available table columns: ${columns.join(', ')}`
         });
         return false;
     }

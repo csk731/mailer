@@ -64,8 +64,8 @@ export function EmailComposer({
     if (activeEl === bodyTextareaRef.current) target = 'body';
 
     if (!target) {
-        toast.info("Please click Subject or Body", {
-            description: "Click where you want to insert the variable first."
+        toast.info("Click Subject or Body first", {
+            description: "Click inside the subject line or message body to insert the variable."
         });
         // Default focus to body for better UX if they just forgot
         bodyTextareaRef.current?.focus();
@@ -107,17 +107,23 @@ export function EmailComposer({
   return (
     <div className="w-full space-y-4">
       {/* Variable Chips Toolbar */}
-      <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
-        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">
-             <Sparkles size={10} className="text-indigo-400" /> 
-             <span>Data Variables</span>
+      <div className="flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-muted-foreground pl-1">
+             <div className="flex items-center gap-1.5 uppercase tracking-widest">
+                 <Sparkles size={11} className="text-indigo-400" /> 
+                 <span>Data Variables</span>
+             </div>
+
+             <span className="text-[11px] font-sans text-muted-foreground/60">
+                 Tip: Use <code className="text-indigo-300 font-mono bg-indigo-500/10 px-1 py-0.5 rounded text-[10px]">{`{{NAME|there}}`}</code> for fallback values
+             </span>
         </div>
-        <div className="flex justify-between items-start gap-4">
-             <div className="flex flex-wrap gap-2">
+
+        <div className="flex flex-wrap gap-2">
             {columns.map((col) => (
             <button
                 key={col}
-                onMouseDown={(e) => e.preventDefault()} // Prevent losing focus from input/textarea
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => insertVariable(col)}
                 className="group relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-medium text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/20 transition-all select-none focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
                 title={`Insert {{${col}}} into message`}
@@ -127,7 +133,6 @@ export function EmailComposer({
                 <span className="opacity-50 text-[10px] group-hover:opacity-100 transition-opacity">{`}}`}</span>
             </button>
             ))}
-            </div>
         </div>
       </div>
 
@@ -150,17 +155,22 @@ export function EmailComposer({
          </div>
 
          {/* Body Textarea */}
-         <div className="relative flex-1 min-h-[350px] bg-background">
+         <div className="relative flex-1 min-h-[350px] bg-background flex flex-col">
             <textarea
                 ref={bodyTextareaRef}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 onFocus={() => setLastFocused('body')}
                 placeholder="Write your message here..."
-                className="w-full h-full min-h-[350px] bg-transparent text-foreground px-4 py-4 focus:outline-none resize-y font-sans text-[14px] leading-relaxed placeholder:text-muted-foreground"
+                className="w-full flex-1 min-h-[320px] bg-transparent text-foreground px-4 py-4 focus:outline-none resize-y font-sans text-[14px] leading-relaxed placeholder:text-muted-foreground"
                 style={{ lineHeight: '1.6' }}
             />
-         </div>
+             {body.length > 0 && (
+                 <div className="px-4 py-1.5 text-right text-[11px] font-mono text-muted-foreground/60 select-none">
+                     {body.trim().split(/\s+/).filter(Boolean).length} words • {body.length} characters
+                 </div>
+             )}
+          </div>
 
           {/* Attachments Footer */}
           <div className="px-4 py-3 border-t border-border bg-muted/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
@@ -197,10 +207,10 @@ export function EmailComposer({
                            <div 
                             key={file.name + i} 
                             onClick={() => {
-                              const key = file.name + file.size;
-                              const url = objectUrlsRef.current.get(key);
-                              if (url) window.open(url, '_blank');
-                           }}
+                               const key = file.name + file.size;
+                               const url = objectUrlsRef.current.get(key);
+                               if (url) window.open(url, '_blank');
+                            }}
                             className="flex items-center gap-2 pl-2 pr-1 py-1 rounded bg-background border border-border text-[11px] text-foreground animate-in fade-in zoom-in duration-200 shrink-0 group select-none cursor-pointer hover:border-indigo-500/50 hover:bg-muted/50 transition-colors"
                             title="Click to preview"
                           >
@@ -222,7 +232,7 @@ export function EmailComposer({
               </div>
               
               <div className="text-[10px] text-muted-foreground font-mono pl-4 shrink-0">
-                  {attachments.length > 0 ? `${attachments.length} files` : 'Plain text'}
+                  {attachments.length > 0 ? `${attachments.length} ${attachments.length === 1 ? 'file' : 'files'}` : 'No attachments'}
               </div>
           </div>
        </div>
